@@ -1,0 +1,35 @@
+
+.MMM-meteoblue .forecast {
+  text-align: left;
+  min-width: 400px;
+  margin-top: 1ex;
+}
+
+.MMM-meteoblue .forecast-row .pictocode {
+  filter: brightness(50%);
+}
+
+.MMM-meteoblue .forecast-row>span {
+  display: table-cell;
+  width: 1px;
+}
+
+.MMM-meteoblue .forecast-bar {
+  display: table;
+  overflow: hidden;
+  min-width: 400px;
+}
+
+.MMM-meteoblue .forecast-bar>span {
+  display: table-cell;
+  text-align: center;
+}
+
+.MMM-meteoblue .forecast-bar .bar {
+  background-color: #aaa;
+  line-height: 0.8em;
+  border-radius: 1em;
+  border: 0.5ex black solid;
+  background-clip: padding-box;
+  color: black;
+}
