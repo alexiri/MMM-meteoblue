@@ -237,6 +237,6 @@ Module.register('MMM-meteoblue', {
 	 */
 	roundValue: function(temperature) {
 		var decimals = this.config.roundTemp ? 0 : 1;
-		return Number(parseFloat(temperature).toFixed(decimals));
+		return typeof temperature === 'number'? Number(parseFloat(temperature).toFixed(decimals)) : null;
 	}
 });
