@@ -47,9 +47,9 @@ Module.register('MMM-meteoblue', {
         // Set locale
         moment.locale(config.language);
 
-        var this.forecast = [];
-        var this.loaded = false;
-        var this.update_timer;
+        this.forecast = [];
+        this.loaded = false;
+        this.update_timer;
         this.scheduleUpdate(this.config.initialLoadDelay);
     },
 
