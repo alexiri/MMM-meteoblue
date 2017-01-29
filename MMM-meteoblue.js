@@ -47,8 +47,9 @@ Module.register('MMM-meteoblue', {
         // Set locale
         moment.locale(config.language);
 
-        this.forecast = [];
-        this.loaded = false;
+        var this.forecast = [];
+        var this.loaded = false;
+        var this.update_timer;
         this.scheduleUpdate(this.config.initialLoadDelay);
     },
 
@@ -216,14 +217,27 @@ Module.register('MMM-meteoblue', {
         weatherRequest.send();
     },
 
+    suspend: function() {
+        if (this.update_timer) {
+            clearTimeout(this.update_timer);
+            this.update_timer = -1;
+        }
+    },
+
+    resume: function() {
+        this.update_timer = null;
+        this.scheduleUpdate(this.config.initialLoadDelay);
+    },
+
     scheduleUpdate: function(delay) {
+        if (this.update_timer == -1) { return; }
         var nextLoad = this.config.updateInterval;
         if (typeof delay !== "undefined" && delay >= 0) {
             nextLoad = delay;
         }
 
         var self = this;
-        setTimeout(function() {
+        this.update_timer = setTimeout(function() {
             self.updateWeather();
         }, nextLoad);
     },
