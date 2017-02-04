@@ -313,7 +313,7 @@ Module.register('MMM-meteoblue', {
 
         this.current = {
             temperature: this.roundValue(payload.result.temperature),
-            icon: payload.result.icon + '_monochrome.svg',
+            icon: payload.result.icon.replace(/inight/, 'night') + '_monochrome.svg',
             icon_text: payload.result.icon_text,
             windspeed: payload.result.windspeed,
             hourly: [],
