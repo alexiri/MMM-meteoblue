@@ -90,7 +90,7 @@ Module.register('MMM-meteoblue', {
         }
 
         var template = `
-        <div class="large light">
+        <div class="xlarge light">
           <img src="/modules/MMM-meteoblue/img/<%- current.icon %>" height="70px" class="pictocode">
           <span class="temp bright bold"><%- current.temperature %>&deg;</span>
         </div>
@@ -98,7 +98,7 @@ Module.register('MMM-meteoblue', {
         <table class="small hourly">
           <tr>
           <% _.each(current.hourly, function(f){ %>
-              <td>
+              <td class="<%- (moment.now() > f.time)? 'xsmall' : '' %>">
                 <div><center><%- f.time.format('LT') %></center></div>
                 <div><img src="/modules/MMM-meteoblue/img/<%- f.icon %>" height="50px" class="pictocode"></div>
                 <div class="temp"><%- f.temperature %>&deg; (<%- f.windchill %>&deg;)</div>
@@ -329,6 +329,12 @@ Module.register('MMM-meteoblue', {
                 winddirection: f.winddirs,
                 windspeed: f.windspeeds,
             });
+            // If time suddenly went backwards, we must be on the next day
+            if (this.current.hourly.length > 1) {
+                if (this.current.hourly[this.current.hourly.length-1].time < this.current.hourly[this.current.hourly.length-2].time) {
+                    this.current.hourly[this.current.hourly.length-1].time.add(1, 'd');
+                }
+            }
         }
 
         Log.info('current data', this.current);
