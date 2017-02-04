@@ -5,6 +5,7 @@ Module.register('MMM-meteoblue', {
         lat: 0,
         lon: 0,
         asl: 0,
+        location: '', // Get from the current weather page
         tz: 'Europe/Zurich',
         // Get an API key
         apiKey: '',
@@ -20,6 +21,8 @@ Module.register('MMM-meteoblue', {
 
         apiBase: 'https://my.meteoblue.com',
         forecastEndpoint: 'packages/basic-day',
+        currentBase: 'https://www.meteoblue.com',
+        currentEndpoint: config.language + '/weather/forecast/current',
     },
 
     getScripts: function() {
@@ -47,8 +50,10 @@ Module.register('MMM-meteoblue', {
         // Set locale
         moment.locale(config.language);
 
-        this.forecast = [];
-        this.loaded = false;
+        this.current = {};
+        this.forecast = {};
+        this.currentLoaded = false;
+        this.forecastLoaded = false;
         this.update_timer;
         this.scheduleUpdate(this.config.initialLoadDelay);
     },
@@ -69,7 +74,16 @@ Module.register('MMM-meteoblue', {
             return wrapper;
         }
 
-        if (!this.loaded) {
+        var $div = $('<div>');
+        $div.append(this.getCurrentDom());
+        $div.append(this.getForecastDom());
+
+        return $div[0];
+    },
+
+    getCurrentDom: function() {
+        if (!this.currentLoaded) {
+            var wrapper = document.createElement("div");
             wrapper.innerHTML = this.translate('LOADING');
             wrapper.className = "dimmed light small";
             return wrapper;
@@ -77,9 +91,45 @@ Module.register('MMM-meteoblue', {
 
         var template = `
         <div class="large light">
-          <img src="/modules/MMM-meteoblue/img/<%- forecast.data[0].icon %>" height="50px" class="pictocode">
-          <span class="temp"><%- forecast.data[0].tempMean %>&deg;</span>
+          <img src="/modules/MMM-meteoblue/img/<%- current.icon %>" height="70px" class="pictocode">
+          <span class="temp bright bold"><%- current.temperature %>&deg;</span>
         </div>
+        <div class="normal medium"><%- current.icon_text %></div>
+        <table class="small hourly">
+          <tr>
+          <% _.each(current.hourly, function(f){ %>
+              <td>
+                <div><center><%- f.time.format('LT') %></center></div>
+                <div><img src="/modules/MMM-meteoblue/img/<%- f.icon %>" height="50px" class="pictocode"></div>
+                <div class="temp"><%- f.temperature %>&deg; (<%- f.windchill %>&deg;)</div>
+              </td>
+          <% }); %>
+          </tr>
+        </table>
+        `;
+
+        var t = _.template(template);
+        var $div = $(
+          t({
+             name: this.name, // Need this to make translations work
+             translate: this.translate,
+             config: this.config,
+             current: this.current,
+           })
+        );
+
+        return $div.wrapAll('<div>').parent()[0];
+    },
+
+    getForecastDom: function() {
+        if (!this.forecastLoaded) {
+            var wrapper = document.createElement("div");
+            wrapper.innerHTML = this.translate('LOADING');
+            wrapper.className = "dimmed light small";
+            return wrapper;
+        }
+
+        var template = `
         <%
         var tempMin = _.min(_.pluck(forecast.data, 'tempMin'));
         var tempMax = _.max(_.pluck(forecast.data, 'tempMax'));
@@ -138,7 +188,7 @@ Module.register('MMM-meteoblue', {
     },
 
     processWeather: function(data) {
-        Log.info('uncooked data', data);
+        //Log.info('uncooked data', data);
 
         /* Go from this:
           { 'temperature_max': [10, 11, 12, ...], ... }
@@ -149,7 +199,7 @@ Module.register('MMM-meteoblue', {
         var values = _.map(keys, function(k) { return data.data_day[k]; });
         var valueSlices = _.zip.apply(_, values);
         var day = _.map(valueSlices, _.partial(_.object, keys));
-        Log.info('cooked data', day);
+        //Log.info('cooked data', day);
 
         this.forecast = {};
         this.forecast.data = [];
@@ -184,7 +234,7 @@ Module.register('MMM-meteoblue', {
         };
 
         Log.info('forecast data', this.forecast);
-        this.loaded = true;
+        this.forecastLoaded = true;
         this.updateDom(this.config.animationSpeed);
     },
 
@@ -210,11 +260,20 @@ Module.register('MMM-meteoblue', {
                 }
 
                 if (retry) {
-                    self.scheduleUpdate((self.loaded) ? -1 : self.config.retryDelay);
+                    self.scheduleUpdate((self.forecastLoaded) ? -1 : self.config.retryDelay);
                 }
             }
         };
         weatherRequest.send();
+
+        this.sendSocketNotification('GET_CURRENT', {
+          currentBase: this.config.currentBase,
+          currentEndpoint: this.config.currentEndpoint,
+          location: this.config.location,
+          params: {
+              units: this.config.units,
+          }
+        });
     },
 
     suspend: function() {
@@ -240,6 +299,42 @@ Module.register('MMM-meteoblue', {
         this.update_timer = setTimeout(function() {
             self.updateWeather();
         }, nextLoad);
+    },
+
+    socketNotificationReceived: function(notification, payload) {
+      if (notification === 'CURRENT_QUERY_RESULT') {
+        /*Log.info('Query result: ' + this.name);
+        Log.info(payload.result);*/
+
+        var keys = _.keys(payload.result.hourly);
+        var values = _.map(keys, function(k) { return payload.result.hourly[k]; });
+        var valueSlices = _.zip.apply(_, values);
+        var hourly = _.map(valueSlices, _.partial(_.object, keys));
+
+        this.current = {
+            temperature: this.roundValue(payload.result.temperature),
+            icon: payload.result.icon + '_monochrome.svg',
+            icon_text: payload.result.icon_text,
+            windspeed: payload.result.windspeed,
+            hourly: [],
+        };
+
+        for (var i = 0; i < hourly.length; i++) {
+            var f = hourly[i];
+            this.current.hourly.push({
+                temperature: this.roundValue(parseFloat(f.temperatures.replace(/[^\d.-]/g, ''))),
+                icon: f.icons + '_monochrome.svg',
+                time: moment(f.times, 'HHmm'),
+                windchill: this.roundValue(parseFloat(f.windchills.replace(/[^\d.-]/g, ''))),
+                winddirection: f.winddirs,
+                windspeed: f.windspeeds,
+            });
+        }
+
+        Log.info('current data', this.current);
+        this.currentLoaded = true;
+        this.updateDom(this.config.animationSpeed);
+      }
     },
 
     /* function(temperature)
