@@ -1,8 +1,7 @@
-
 var NodeHelper = require('node_helper');
 var request = require('request');
 var moment = require('moment');
-var cheerio = require("cheerio");
+var cheerio = require('cheerio');
 
 module.exports = NodeHelper.create({
   start: function () {
@@ -20,7 +19,7 @@ module.exports = NodeHelper.create({
 
     var url = currentBase + '/' + currentEndpoint + '/' + location;
 
-    self = this;
+    var self = this;
     var j = request.jar();
     if (params.units === 'imperial') {
       j.setCookie(request.cookie('temp=FAHRENHEIT'), url);
