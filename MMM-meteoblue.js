@@ -136,7 +136,7 @@ Module.register('MMM-meteoblue', {
         var total = tempMax - tempMin;
         var interval = 100 / total;
         %>
-        <table class="forecast">
+        <table class="forecast small">
           <% _.each(forecast.data, function(f){ %>
           <tr class="forecast-row">
             <td><%- f.day.format("ddd") %></td>
