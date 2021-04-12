@@ -15,7 +15,7 @@ Module.register('MMM-meteoblue', {
         units: config.units,
         timeFormat: config.timeFormat,
         initialLoadDelay: 0, // 0 seconds delay
-        retryDelay: 2500,
+        retryDelay: 10 * 60 * 1000, // every 10 minutes
         updateInterval: 60 * 60 * 1000, // every 60 minutes
         animationSpeed: 1000,
 
@@ -321,6 +321,7 @@ Module.register('MMM-meteoblue', {
 
         for (var i = 0; i < hourly.length; i++) {
             var f = hourly[i];
+            //if (moment.now() > moment(f.times, 'HHmm')) continue;
             this.current.hourly.push({
                 temperature: this.roundValue(parseFloat(f.temperatures.replace(/[^\d.-]/g, ''))),
                 icon: f.icons + '_monochrome.svg',
