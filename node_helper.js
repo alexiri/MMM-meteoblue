@@ -38,12 +38,12 @@ module.exports = NodeHelper.create({
 
         var result = {};
 
-        result.temperature = parseFloat($('div.current_weather_detail > div.temperature').text().replace(/[^\d.-]/g, ''));
+        result.temperature = parseFloat($('span.current_temp').text().replace(/[^\d.-]/g, ''));
 
-        var classes = $('div.current_weather_detail > div.pictoicon > div').attr('class').replace('picon', '').trim();
-        result.icon = classes.replace(/^p/, '');
-        result.icon_text = $('div.current_weather_detail > div.pictoicon > div').attr('title');
-        result.windspeed = parseFloat($('div.current_weather_detail > div.wind').text().replace(/[^\d.-]/g, ''));
+        var image = $('span.current_picto img').attr('src').replace(/https:\/\/static.meteoblue.com\/website\/images\/picto\//, '');
+        result.icon = image.replace(/.svg/, '');
+        result.icon_text = $('span.current_picto > img').attr('title');
+        result.windspeed = parseFloat($('div.current_description span:nth-child(2)').text().replace(/[^\d.-]/g, ''));
 
         var hourly = {};
         $('table.picto > tbody > tr').each(function(index, element) {
